@@ -1,235 +1,240 @@
 <template>
-  <div>
-    <div class="flex justify-content-between align-items-center mb-4">
-      <h1 class="text-3xl font-bold">User Management</h1>
-      <Button
-        label="Create User"
-        icon="pi pi-plus"
-        @click="openCreateDialog"
+    <div>
+      <Button label="Criar Usuário" icon="pi pi-plus" class="p-button-success mb-3" @click="openCreatingUser" />
+      
+      <table v-if="users.length > 0" class="p-datatable p-component">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Roles</th>
+            <th>Timezone</th>
+            <th>Is Active?</th>
+            <th>Last Updated At</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(user, index) in users" :key="user.username">
+            <td>
+              <router-link :to="'/user/' + user.username"
+              style="color: green; text-decoration: none;"
+              >
+              {{ user.username }}
+              </router-link>
+            </td>
+            <td>{{ user.roles ? user.roles.join(', ') : '-' }}</td>
+            <td>{{ user.preferences?.timezone || 'N/A' }}</td>
+            <td>
+              <i 
+                :class="user.active ? 'pi pi-check-circle' : 'pi pi-times-circle'"
+                :style="{ color: user.active ? 'green' : 'red' }"
+              ></i>
+            </td>
+            <td>{{ formatDate(user.last_updated_at) }}</td>
+            <td>{{ formatDate(user.created_ts) }}</td>
+            <td>
+              <Button icon="pi pi-pencil" @click="editUser(user)" ></Button>
+              <Button icon="pi pi-trash" class="p-button-danger" @click="deleteUser(user.username)" ></Button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+  
+      <p v-else>Carregando usuários...</p>
+  
+      <!-- Edit User Modal -->
+      <EditUserModal 
+        :isVisible="isDialogVisible"
+        :user="editedUser"
+        :roles="roles"
+        :timezones="timezones"
+        @updateUser="updateUser"
+        @closeDialog="closeDialog"
+      />
+
+      <!-- Create User Modal -->
+      <CreateUserModal
+        :isVisible="isDialogVisibleCreate"
+        :roles="roles"
+        :timezones="timezones"
+        @userCreated="createUser"
+        @closeDialog="closeCreateDialog"
       />
     </div>
-
-    <DataTable
-      :value="users"
-      :paginator="true"
-      :rows="5"
-      :loading="loading"
-      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-      :rowsPerPageOptions="[5,10]"
-      currentPageReportTemplate="Showing {first} to {last} of {totalRecords} users"
-      class="tableData"
-    >
-      <Column field="username" header="Username" :sortable="true">
-        <template #body="{ data }">
-          <router-link :to="`/user/${data.username}`">{{ data.username }}</router-link>
-        </template>
-      </Column>
-      <Column field="roles" header="Roles" :sortable="true" class="text-center">
-        <template #body="{ data }">
-          <span 
-          v-for="(role, index) in data.roles" 
-          :key="role"
-          class="role-badge"
-        >
-            {{ role.toUpperCase() }}
-            <span v-if="index < data.roles.length - 1">, </span>
-          </span>
-        </template>
-      </Column>
-      <Column field="preferences.timezone" header="Timezone" :sortable="true" class="text-center" />
-      <Column field="active" header="Active" :sortable="true" class="text-center">
-        <template #body="{ data }">
-          <i
-            class="pi"
-            :class="data.active ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-500'"
-          />
-        </template>
-      </Column>
-      <Column field="last_updated_at" header="Last Updated" :sortable="true" class="text-center">
-        <template #body="{ data }">
-          {{ formatDate(data.last_updated_at) }}
-        </template>
-      </Column>
-      <Column field="created_ts" header="Created At" :sortable="true">
-        <template #body="{ data }">
-          <span class="date-text">
-          {{ formatDate(data.created_ts) }}
-        </span>
-        </template>
-      </Column>
-    </DataTable>
-
-    <UserDialog
-      v-model:visible="showDialog"
-      :user="selectedUser"
-      :isEdit="isEdit"
-      @close="closeDialog"
-      @save="handleSave"
-    />
-
-    <ConfirmDialog />
-  </div>
-</template>
-
-<script>
-import { ref, onMounted } from 'vue'
-import { useConfirm } from 'primevue/useconfirm'
-import { useToast } from 'primevue/usetoast'
-import api from '../services/api'
-import UserDialog from './UserDialog.vue'
-
-export default {
-  components: {
-    UserDialog
-  },
-  setup() {
-    const confirm = useConfirm()
-    const toast = useToast()
-    const users = ref([])
-    const loading = ref(false)
-    const showDialog = ref(false)
-    const selectedUser = ref(null)
-    const isEdit = ref(false)
-
-    const fetchUsers = async () => {
-      loading.value = true
+  </template>
+  
+  <script lang="ts">
+  import axios from 'axios'
+  import { ref, onMounted } from 'vue'
+  import EditUserModal from './EditUserModal.vue'
+  import CreateUserModal from './CreateUserModal.vue'
+  
+  export default {
+    components: {
+      EditUserModal,
+      CreateUserModal
+    },
+    setup() {
+      const users = ref([])
+      const roles = ref([
+        { name: 'admin' },
+        { name: 'user' },
+        { name: 'manager' },
+      ])
+       // timezones
+      const timezones = ref([
+        { code: 'America/New_York', name: 'America/New_York' },
+        { code: 'America/Los_Angeles', name: 'America/Los_Angeles' },
+        { code: 'Europe/London', name: 'Europe/London' },
+        { code: 'Asia/Tokyo', name: 'Asia/Tokyo' },
+        { code: 'Europe/Berlin', name: 'Europe/Berlin' },
+        { code: 'Australia/Sydney', name: 'Australia/Sydney' },
+        { code: 'America/Los_Angeles', name: 'America/Los_Angeles' },
+        { code: 'Asia/Singapore', name: 'Asia/Singapore' },
+        { code: 'America/Chicago', name: 'America/Chicago' },
+        { code: 'Europe/Paris', name: 'Europe/Paris' },
+        { code: 'Asia/Dubai', name: 'Asia/Dubai' },
+        { code: 'America/Toronto', name: 'America/Toronto' },
+        { code: 'Europe/Rome', name: 'Europe/Rome' },
+        { code: 'Asia/Hong_Kong', name: 'Asia/Hong_Kong' },
+        { code: 'America/Denver', name: 'America/Denver' },
+        { code: 'Europe/Amsterdam', name: 'Europe/Amsterdam' },
+        { code: 'Australia/Melbourne', name: 'Australia/Melbourne' },
+        { code: 'America/Phoenix', name: 'America/Phoenix' },
+        { code: 'Europe/Moscow', name: 'Europe/Moscow' },
+        { code: 'Asia/Seoul', name: 'Asia/Seoul' },
+        { code: 'America/Sao_Paulo', name: 'America/Sao_Paulo' },
+        { code: 'Europe/Vienna', name: 'Europe/Vienna' },
+        { code: 'Asia/Bangkok', name: 'Asia/Bangkok' },
+        { code: 'America/Vancouver', name: 'America/Vancouver' },
+        { code: 'Australia/Perth', name: 'Australia/Perth' },
+        { code: 'America/Mexico_City', name: 'America/Mexico_City' },
+        { code: 'Europe/Stockholm', name: 'Europe/Stockholm' },
+        { code: 'Asia/Kolkata', name: 'Asia/Kolkata' },
+        { code: 'America/Buenos_Aires', name: 'America/Buenos_Aires' },
+      ])
+      const isDialogVisible = ref(false)
+      const isDialogVisibleCreate = ref(false)
+      const editedUser = ref(null)
+      
+  
+      const fetchUsers = async () => {
       try {
-        users.value = await api.getUsers()
-      } catch (error) {
-        toast.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to fetch users',
-          life: 3000
-        })
-      } finally {
-        loading.value = false
-      }
-    }
-
-    const formatDate = (dateString) => {
-      if (!dateString) return ''
-      const date = new Date(dateString)
-      return date.toLocaleString()
-    }
-
-    const openCreateDialog = () => {
-      selectedUser.value = null
-      isEdit.value = false
-      showDialog.value = true
-    }
-
-    const openEditDialog = (user) => {
-      selectedUser.value = { ...user }
-      isEdit.value = true
-      showDialog.value = true
-    }
-
-    const closeDialog = () => {
-      showDialog.value = false
-    }
-
-    const handleSave = async (userData) => {
-      try {
-        if (isEdit.value) {
-          await api.updateUser(selectedUser.value.username, userData)
-          toast.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'User updated successfully',
-            life: 3000
-          })
+        console.log("Buscando usuários...");  // 🔍 Debug
+        const response = await axios.get('http://localhost:5000/users');
+        
+        if (response.data.length === 0) {
+          console.warn("⚠️ Nenhum usuário encontrado!");
         } else {
-          await api.createUser(userData)
-          toast.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'User created successfully',
-            life: 3000
+          users.value = response.data.map((user: any) => ({
+            ...user,
+            created_ts: user.created_ts || 'N/A',
+            last_updated_at: user.last_updated_at || 'N/A',
+            roles: Array.isArray(user.roles) ? user.roles : [], 
+            preferences: user.preferences || {},
+          }));
+          console.log("Usuários carregados:", users.value);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error);
+      }
+    }
+
+      const formatDate = (timestamp: number) => {
+        if (!timestamp) return 'N/A'
+        return new Date(timestamp).toLocaleString()
+      };
+  
+      const deleteUser = async (username: string) => {
+        try {
+          await axios.delete(`http://localhost:5000/users/${username}`)
+          fetchUsers()
+        } catch (error) {
+          console.error('Erro ao deletar usuário:', error)
+        }
+      }
+      const openCreatingUser = () => {
+        isDialogVisibleCreate.value = true
+      }
+
+      const closeCreateDialog = () => {
+        isDialogVisibleCreate.value = false
+      }
+  
+      const editUser = (user: any) => {
+        editedUser.value = { ...user }
+        isDialogVisible.value = true
+      }
+
+      const closeDialog = () => {
+        isDialogVisible.value = false
+      }
+  
+      //update user function
+      const updateUser = async (user:any) => {
+        try {
+          await axios.put(`http://localhost:5000/update_users/${user.username}`, user)
+          fetchUsers()
+          closeDialog()
+        } catch (error) {
+          console.error('Erro ao atualizar usuário:', error)
+        }
+      }
+  
+      // create user function
+      const createUser = async(user: any) =>{
+        try {
+          await axios.post('http://localhost:5000/new_users', user,{
+            headers: { 'Content-Type': 'application/json' }
           })
+          await fetchUsers()
+          closeDialog()
+        } catch (error) {
+          console.error('Erro ao criar usuário:', error)
         }
-        fetchUsers()
-      } catch (error) {
-        toast.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: isEdit.value ? 'Failed to update user' : 'Failed to create user',
-          life: 3000
-        })
       }
+      onMounted(fetchUsers);
+  
+      return {       
+        users, fetchUsers, deleteUser, isDialogVisibleCreate, closeCreateDialog, editUser, formatDate, openCreatingUser, isDialogVisible, editedUser, createUser, roles, timezones, updateUser, closeDialog };
     }
-
-    const confirmDelete = (username) => {
-      confirm.require({
-        message: 'Are you sure you want to delete this user?',
-        header: 'Confirmation',
-        icon: 'pi pi-exclamation-triangle',
-        accept: () => {
-          deleteUser(username)
-        }
-      })
-    }
-
-    const deleteUser = async (username) => {
-      try {
-        await api.deleteUser(username)
-        toast.add({
-          severity: 'success',
-          summary: 'Success',
-          detail: 'User deleted successfully',
-          life: 3000
-        })
-        fetchUsers()
-      } catch (error) {
-        toast.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to delete user',
-          life: 3000
-        })
-      }
-    }
-
-    onMounted(() => {
-      fetchUsers()
-    })
-
-    return {
-      users,
-      loading,
-      showDialog,
-      selectedUser,
-      isEdit,
-      formatDate,
-      openCreateDialog,
-      openEditDialog,
-      closeDialog,
-      handleSave,
-      confirmDelete
-    }
+  };
+  </script>
+  
+  <style scoped>
+  
+  .p-button {
+    margin: 10px;
   }
-}
-</script>
-
-<style scoped>
-.p-button {
-  margin-right: 10px;
-  margin: 10px;
-  gap: 15px;
-  width: 105px;
-  height: 40px;
-  border-radius:30px ;
-  background-color: #007BFF;
-  color: white;
-}
-.role-badge{
-  margin: 10px;
-}
-.date-text{
-  margin: 30px;
-}
-.pi{
-  margin: 20px;
-}
-
-</style>
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    padding: 10px;
+    text-align: center;
+  }
+  
+  td {
+    color: white;
+    font-size: medium;
+  }
+  
+  th {
+    background-color: #4076a0;
+    font-weight: bolder;
+    font-size: larger;
+  }
+  
+  tr:nth-child(even) {
+    background-color: #272424;
+  }
+  
+  tr:hover {
+    background-color: #5c835b;
+  }
+  </style>
+  

@@ -54,11 +54,35 @@ def get_users():
     
     return jsonify(users)
 
+#Get specific user
+@app.route('/user/<username>', methods=['GET'])
+def get_user(username):
+    user = collection.find_one({"username": username})
+    if user:
+        user["_id"] = str(user["_id"])
+        if "created_at" in user:
+            user["created_at"] = user["created_at"].strftime("%d/%m/%Y %H:%M:%S")  
+        if "updated_at" in user:
+            user["updated_at"] = user["updated_at"].strftime("%d/%m/%Y %H:%M:%S") 
+        return jsonify(user)
+    else:
+        return jsonify({"error": "User not found"}), 404
+
+# CREATE NEW USER
+@app.route('/new_users', methods=['POST'])
+def create_user():
+    data = request.json
+    data['created_ts'] = datetime.now().timestamp()
+    data['last_updated_at'] = datetime.now().timestamp()
+    collection.insert_one(data)
+    return jsonify({"message": "User created successfully"}), 201
+
+
+# UPDATE USER
 @app.route('/update_users/<username>', methods=['PUT'])
 def update_user(username):
     data = request.json
     
-    # Remove protected fields
     data.pop('created_ts', None)
     
     # Only update last_updated_at
@@ -70,7 +94,12 @@ def update_user(username):
     )
     return jsonify({"message": "User updated successfully"}), 200
 
-# ... (outras rotas permanecem iguais)
+# DELETE USER
+@app.route('/users/<username>', methods=['DELETE'])
+def delete_user(username):
+    collection.delete_one({"username": username})
+    return jsonify({"message": "User deleted successfully"}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,5 +1,6 @@
 <template>
-  <div class="container">
+  <div>
+    <h1>User Managements</h1>
     <UserTable />
   </div>
 </template>
@@ -13,11 +14,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-}
-</style>
