@@ -106,7 +106,6 @@ Content-Type: application/json
 
 | Error                      | Solution                                                                     |
 | -------------------------- | ---------------------------------------------------------------------------- |
-| `MongoDB not found`      | Make sure MongoDB is running (`mongod` or via Docker).                     |
 | `CORS error `in frontend | CORS is already enabled in Flask (`flask_cors`). Adjust headers if needed. |
 | `ModuleNotFoundError`    | Run `pip install -r requirements.txt`in the backend.                       |
 
