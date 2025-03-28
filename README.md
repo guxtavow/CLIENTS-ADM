@@ -125,6 +125,9 @@ Content-Type: application/json
 
 ---
 
+## Status
+Unfinished
+
 ## 📜 License
 
 This project is open-source under the **MIT** license.
