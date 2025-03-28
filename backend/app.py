@@ -54,11 +54,20 @@ def get_users():
     
     return jsonify(users)
 
+@app.route('/api/new_users', methods=['POST'])
+def create_user():
+    data = request.json
+    data['created_ts'] = datetime.now().timestamp()
+    data['last_updated_at'] = datetime.now().timestamp()
+    collection.insert_one(data)
+    return jsonify({"message": "User created successfully"}), 201
+
+
+
 @app.route('/update_users/<username>', methods=['PUT'])
 def update_user(username):
     data = request.json
     
-    # Remove protected fields
     data.pop('created_ts', None)
     
     # Only update last_updated_at
@@ -70,7 +79,13 @@ def update_user(username):
     )
     return jsonify({"message": "User updated successfully"}), 200
 
-# ... (outras rotas permanecem iguais)
+@app.route('/api/users/<username>', methods=['DELETE'])
+def delete_user(id):
+    collection.delete_one({"_id": id})
+    return jsonify({"message": "User deleted successfully"}), 200
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
