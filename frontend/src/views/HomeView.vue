@@ -1,9 +1,23 @@
-<script setup lang="ts">
-import TheWelcome from '../components/TheWelcome.vue'
+<template>
+  <div class="container">
+    <UserTable />
+  </div>
+</template>
+
+<script>
+import UserTable from '@/components/UserTable.vue'
+
+export default {
+  components: {
+    UserTable
+  }
+}
 </script>
 
-<template>
-  <main>
-    <TheWelcome />
-  </main>
-</template>
+<style>
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+</style>
