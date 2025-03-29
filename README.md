@@ -26,11 +26,9 @@ This project is a **User CRUD** using **Flask (Python) as the backend** and  **V
 
 ### **1. Clone the Repository**
 
-`git clone https://github.com/your-username/your-repository.git `
+`git clone https://github.com/your-username/project.git `
 
-`cd your-repository `
-
----
+`cd project `
 
 ## 🔥 Backend Setup (Flask)
 
@@ -47,9 +45,7 @@ pip install -r requirements.txt
 
 ### **3. Configure MongoDB**
 
-Make sure MongoDB is running locally or use a cloud service like  **MongoDB Atlas** . In `app.py`, adjust the URI if necessary:
-
-`app.config['MONGO_URI'] = "mongodb://localhost:27017/yourdb" `
+In this project i used **MONGODBATLAS**, so dont worry abou fix the config of database
 
 ### **4. Start the Flask Server**
 
@@ -87,15 +83,6 @@ The frontend will be running at  **[http://localhost:5173]()** .
 
 ```
 POST /api/new_users
-Content-Type: application/json
-{
-  "username": "john_doe",
-  "password": "123456",
-  "roles": ["admin"],
-  "preferences": { "timezone": "UTC" },
-  "active": true
-}
-
 ```
 
 ### 🔹 **Update a user**
@@ -117,14 +104,19 @@ Content-Type: application/json
 
 ## Common Errors & Solutions
 
-| Error                     | Solution                                                                     |
-| ------------------------- | ---------------------------------------------------------------------------- |
-| `MongoDB not found`     | Make sure MongoDB is running (`mongod`or via Docker).                      |
-| `CORS error`in frontend | CORS is already enabled in Flask (`flask_cors`). Adjust headers if needed. |
-| `ModuleNotFoundError`   | Run `pip install -r requirements.txt`in the backend.                       |
+| Error                      | Solution                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| `MongoDB not found`      | Make sure MongoDB is running (`mongod` or via Docker).                     |
+| `CORS error `in frontend | CORS is already enabled in Flask (`flask_cors`). Adjust headers if needed. |
+| `ModuleNotFoundError`    | Run `pip install -r requirements.txt`in the backend.                       |
 
 ---
 
-## 📜 License
+Status
+======
+
+Unfinished
+
+📜 License
 
 This project is open-source under the **MIT** license.
